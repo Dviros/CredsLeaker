@@ -17,5 +17,5 @@ When validated, it will close and leak it to a web server outside.
 - Box title should be changed.
 - Different windows versions has different credential boxes. Needs to be pulled from WINAPI.
 
-# Donations will be highly apprecaited
+# Donations will be highly appreciated
 ![Monero Donation](https://i.imgur.com/AMK3OCh.png)
