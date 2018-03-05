@@ -1,8 +1,12 @@
 # CredsLeaker
 This script will display a powershell credentials box that will ask the user for his credentials.
 
+![Credentials Box](https://raw.githubusercontent.com/Dviros/CredsLeaker/master/Screens/Box.png)
+
 The box cannot be closed (only by killing the process) will keeps checking the credentials against the DC.
 When validated, it will close and leak it to a web server outside.
+
+![Credentials Leak](https://raw.githubusercontent.com/Dviros/CredsLeaker/master/Screens/Leak.png)
 
 # How To:
 1. Start a web server.
