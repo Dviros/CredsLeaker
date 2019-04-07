@@ -21,3 +21,8 @@ When validated, it will close and leak it to a web server outside.
 
 # Thanks:
 To all my friends that helped to craft this script (specially @deanf)
+
+
+
+# Legal
+This software is provided for educational use only (also with redteamers in mind). Don't use credsleaker without mutual consent. If you engage in any illegal activity the author does not take any responsibility for it. By using this software you agree with these terms.
