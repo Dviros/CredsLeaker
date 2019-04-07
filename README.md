@@ -1,8 +1,12 @@
-# CredsLeaker
-This script will display a powershell credentials box that will ask the user for his credentials.
+# CredsLeaker v3
+This script used to display a powershell credentials box asked the user for credentials.
 
 ![Credentials Box](https://raw.githubusercontent.com/Dviros/CredsLeaker/master/Screens/Box.png)
 
+However,
+That was highly noticeable. Now it's time to utilize Windows Security popup!
+
+As before,
 The box cannot be closed (only by killing the process) will keeps checking the credentials against the DC.
 When validated, it will close and leak it to a web server outside.
 
@@ -13,9 +17,5 @@ When validated, it will close and leak it to a web server outside.
 2. Type your server IP and port in the ps1 script.
 3. Execute the batch file.
 
-# TODO:
-- Box title should be changed.
-- Different windows versions has different credential boxes. Needs to be pulled from WINAPI.
-
-# Donations will be highly appreciated
-![Monero Donation](https://i.imgur.com/AMK3OCh.png)
+# Thanks:
+To all my friends that helped to craft this script (specially @deanf)
