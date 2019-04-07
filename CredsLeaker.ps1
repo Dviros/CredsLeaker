@@ -44,7 +44,6 @@ function Credentials(){
             Credentials
         }
         else {
-            $Domain = $res.CredentialDomainName;
             $Username = $res.CredentialUserName;
             $Password = $res.CredentialPassword;
             $CurrentDomain = "LDAP://" + ([ADSI]"").distinguishedName
