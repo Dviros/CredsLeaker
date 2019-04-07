@@ -6,6 +6,8 @@ This script used to display a powershell credentials box asked the user for cred
 However,
 That was highly noticeable. Now it's time to utilize Windows Security popup!
 
+![Credentials Box](https://raw.githubusercontent.com/Dviros/CredsLeaker/master/Screens/New_Box.png)
+
 As before,
 The box cannot be closed (only by killing the process) will keeps checking the credentials against the DC.
 When validated, it will close and leak it to a web server outside.
