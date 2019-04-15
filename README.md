@@ -7,9 +7,9 @@ That was highly noticeable. Now it's time to utilize Windows Security popup!
 
 # Features
 - AD domain authentication validation.
-- Tested on Windows 10. Needs to be tested on 7\8\8.1\ Servers.
+- Tested on Windows 10 (1809) with Powershell version 5.1. Needs to be tested on 7\8\8.1\ Servers and different powershell versions.
 - Can be modified (title, message etc.).
-- Added WORKGROUP support.
+- Added WORKGROUP support (validation is done against the local SAM).
 
 As before,
 The box cannot be closed (only by killing the process) and will keep on checking the credentials against the DC.
