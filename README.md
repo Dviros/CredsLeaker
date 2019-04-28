@@ -10,6 +10,7 @@ That was highly noticeable. Now it's time to utilize Windows Security popup!
 - Tested on Windows 10 (1809) with Powershell version 5.1. Needs to be tested on 7\8\8.1\ Servers and different powershell versions.
 - Can be modified (title, message etc.).
 - Added WORKGROUP support (validation is done against the local SAM).
+- Added parameters support. Now you can customize the messages, captions, IP's and ports from the command line.
 
 As before,
 The box cannot be closed (only by killing the process) and will keep on checking the credentials against the DC.
@@ -19,7 +20,7 @@ When validated, it will close and leak it to a web server outside.
 
 # How To:
 1. Start a web server.
-2. Type your server IP and port in the ps1 script.
+2. Type your server IP and port in the batch file.
 3. Execute the batch file.
 
 # Thanks:
