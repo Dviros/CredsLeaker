@@ -19,13 +19,8 @@ That was highly noticeable. Now it's time to utilize Windows Security popup!
 - Pipeline and dynamic switching between USB and HTTP export
 - Timed delay for delayed deployment
 - Delayed delivery of leaked credentials if delivery option unaccessible
-
-- *Editable config file to override default params pulled from USB first, Web second (if no USB).  Pipeline option to override config file.
-- *Config file fully editable via web form.
-*Work in progress
-
-# Current Work in this Branch
-Adding config file (config.cl) to override default Parameters and to avoid the need for pipeline parameters which allows for customzed runs without havint to edit the batch or powershell scripts.  All config can be done on the fly via config.php.
+- Config file to override default params pulled from USB first, Web second (if no USB).  Pipeline option to override config file.
+- Config file fully editable via web form (config.php) so script can be run completely on the fly with no need to alter command line params.
 
 The box cannot be closed (only by killing the process) and will keep on checking the credentials against the DC. If credentials fail at the DC, then they are checked against local SAM so that local accounts are leaked even if the machine is a domain member.  When validated, it will close and process via chosen method.
 
