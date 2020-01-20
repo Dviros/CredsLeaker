@@ -1,4 +1,6 @@
 # CredsLeaker v4.x
+## A big shoutout to @ApSecDev who took this project to the next level!
+## Kudos!
 
 This script used to display a powershell credentials box asked the user for credentials.
 However,
